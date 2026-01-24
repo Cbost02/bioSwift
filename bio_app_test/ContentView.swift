@@ -63,15 +63,7 @@ struct ContentView: View
             }.buttonStyle(.borderedProminent)
             
             
-            Button("Tap")
-            {
-                // Everything in here happens when the button is pressed!
-                
-                let elapsed = Date().timeIntervalSince(startTime)
-                tapCount += 1
-                touchEvents.append(TouchEvent(time: elapsed))
-            }.disabled(!isRunning)
-            
+          
             Button("Stop") // Stops the session
             {
                 isRunning = false
@@ -92,9 +84,26 @@ struct ContentView: View
                 }
             }
             
+            // Custom SwiftUI view built from UIKit
             TouchPadView
-            {
+            { // The code inside here is not UI code || It is a touch event handler!
                 phase, point, timestamp in
+                
+                guard isRunning else{ return }
+                
+                if sessionTouchStartTimestamp == nil
+                {
+                    sessionTouchStartTimestamp = timestamp
+                }
+                
+                let elsapsed = timestamp - (sessionTouchStartTimestamp ?? timestamp)
+                
+                touchEvents.append(TouchEvent(time: elsapsed, x: point.x, y: point.y, phase: phase))
+                
+                if phase == "ended"
+                {
+                    tapCount += 1
+                }
                 
                 
             }.frame(height: 300).padding(.horizontal)
