@@ -3,7 +3,7 @@
 //  bio_app_test
 //
 //  Created by Cromwell on 1/23/26.
-// Committing to GitHub...
+//
 
 import SwiftUI
 import Foundation
@@ -18,18 +18,19 @@ struct TouchEvent: Codable // Means it can be exported into something clean!
     let phase: String
 }
 
-// export format
-struct TapSessionExport: Codable
+// export the data from the session
+struct TraceSessionExport: Codable
 {
     let startedAt: Date
-    let tapCount: Int
-    let taps: [TouchEvent]
+    let strokeCount: Int
+    let samples: [TouchEvent]
 }
+
 
 struct ContentView: View
 {
     // Storage needed for tap count, if the session is running, or tap model
-    @State private var tapCount: Int = 0
+    @State private var strokeCount: Int = 0
     @State private var touchEvents: [TouchEvent] = []
     @State private var isRunning = false
     
@@ -38,23 +39,25 @@ struct ContentView: View
     @State private var exportStatus: String = ""
     
     // Keeps the time of the first tap
-     @State private var startTime = Date()
-    
+    @State private var startTime = Date()
     @State private var sessionTouchStartTimestamp: TimeInterval? = nil
     
+    
+    @State private var touchPadSize: CGSize = .zero
     
     var body: some View
     {
         VStack
         {
-            Text("Tap count: \(tapCount)").font(.headline)
+            Text("Strokes completed: \(strokeCount)").font(.headline)
+            
             
             // If the session is running, display Reset, otherwise display Start
             Button(isRunning ? "Reset Session" : "Start Session")
             {
                 isRunning = true
                 startTime = Date()
-                tapCount = 0
+                strokeCount = 0
                 touchEvents.removeAll()
                 sessionTouchStartTimestamp = nil // set to nil because new sessions
                 
@@ -85,28 +88,52 @@ struct ContentView: View
             }
             
             // Custom SwiftUI view built from UIKit
-            TouchPadView
-            { // The code inside here is not UI code || It is a touch event handler!
-                phase, point, timestamp in
+            // This represents the Zig-Zag tracing pad
+            ZStack
+            {
+                ZigZagOverlay().allowsHitTesting(false)       // draws the path + dots
                 
-                guard isRunning else{ return }
-                
-                if sessionTouchStartTimestamp == nil
-                {
-                    sessionTouchStartTimestamp = timestamp
+                TouchPadView
+                { // The code inside here is not UI code || It is a touch event handler!
+                    phase, point, timestamp in
+                    
+                    guard isRunning else{ return }
+                    guard phase == "began" || phase == "moved" || phase == "ended" else {return}
+                    guard touchPadSize.width > 0, touchPadSize.height > 0 else {return}
+                    
+                    if sessionTouchStartTimestamp == nil
+                    {
+                        sessionTouchStartTimestamp = timestamp
+                    }
+                    
+                    let elapsed = timestamp - (sessionTouchStartTimestamp ?? timestamp)
+                    
+                    
+                    let nx = max(0.0, min(1.0, point.x / touchPadSize.width))
+                    let ny = max(0.0, min(1.0, point.y / touchPadSize.height))
+                    
+                    touchEvents.append(TouchEvent(time: elapsed, x: nx, y: ny, phase: phase))
+                    
+                    if phase == "ended"
+                    {
+                        strokeCount += 1
+                    }
                 }
-                
-                let elsapsed = timestamp - (sessionTouchStartTimestamp ?? timestamp)
-                
-                touchEvents.append(TouchEvent(time: elsapsed, x: point.x, y: point.y, phase: phase))
-                
-                if phase == "ended"
-                {
-                    tapCount += 1
-                }
-                
-                
-            }.frame(height: 300).padding(.horizontal)
+            }
+            .frame(height: 300)
+            .padding(.horizontal)
+            .background(RoundedRectangle(cornerRadius: 14).fill(Color(.secondarySystemBackground)))
+            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.black.opacity(0.35), lineWidth: 1))
+            .shadow(radius: 2).background(GeometryReader
+                                         {
+                                             geo in
+                                             Color.clear
+                                                 .onAppear {touchPadSize = geo.size}
+                                                 .onChange(of: geo.size)
+                                             {
+                                                 _, newSize in touchPadSize = newSize
+                                             }
+                                         })
             
             
             
@@ -114,7 +141,9 @@ struct ContentView: View
             List(touchEvents.indices, id: \.self)
             {
                 i in
-                Text("Tap: \(i+1): " + String(format: "%.3f", touchEvents[i].time) + "s")
+                Text("Sample \(i+1): t=\(String(format: "%.3f", touchEvents[i].time))s (\(String(format: "%.3f", touchEvents[i].x)), \(String(format: "%.3f", touchEvents[i].y)) \(touchEvents[i].phase)")
+                    .font(.caption)
+                    .lineLimit(1)
             }
             
         }
@@ -124,7 +153,11 @@ struct ContentView: View
     func exportSession()
     {
         // insert the current session into the exportable format
-        let session = TapSessionExport(startedAt: startTime, tapCount: tapCount, taps: touchEvents)
+        let session = TraceSessionExport(
+            startedAt: startTime,
+            strokeCount: strokeCount,
+            samples: touchEvents
+        )
         
         
         do
@@ -144,7 +177,7 @@ struct ContentView: View
             
             
             // Creates file name
-            let filename = "tap_session_" + ISO8601DateFormatter().string(from: Date()) + ".json"
+            let filename = "zigzag_session_" + ISO8601DateFormatter().string(from: Date()) + ".json"
             
             // creates full file location || "Save this file here, with this name"
             let url = docs.appendingPathComponent(filename)
