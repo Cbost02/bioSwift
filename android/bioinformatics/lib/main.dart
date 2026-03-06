@@ -78,12 +78,6 @@ class HomeScreen extends StatelessWidget {
                   title: 'Swiping',
                   subtitle: 'Swipe speed & control',
                   tag: 'Ready',
-                ),
-                SizedBox(height: 16),
-                ActivityCard(
-                  title: 'Oreientation',
-                  subtitle: 'Device motion stability',
-                  tag: 'Orientation',
                   enabled: true,
                   onTap: () {
                     Navigator.push(
@@ -91,6 +85,12 @@ class HomeScreen extends StatelessWidget {
                       MaterialPageRoute(builder: (_) => const SwipingScreen()),
                     );
                   }
+                ),
+                SizedBox(height: 16),
+                ActivityCard(
+                  title: 'Oreientation',
+                  subtitle: 'Device motion stability',
+                  tag: 'Orientation',
                 ),
               ],
             ),
