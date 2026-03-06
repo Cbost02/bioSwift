@@ -1,5 +1,7 @@
 import 'zigzag_screen.dart';
 import 'package:flutter/material.dart';
+import 'tapping_screen.dart';
+import 'swiping_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -62,19 +64,33 @@ class HomeScreen extends StatelessWidget {
                 ActivityCard(
                   title: 'Tapping',
                   subtitle: 'Target taps & consistency',
-                  tag: 'Coming soon',
+                  tag: 'Ready',
+                  enabled: true,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const TappingScreen()),
+                    );
+                  }
                 ),
                 SizedBox(height: 16),
                 ActivityCard(
                   title: 'Swiping',
                   subtitle: 'Swipe speed & control',
-                  tag: 'Comming soon',
+                  tag: 'Ready',
                 ),
                 SizedBox(height: 16),
                 ActivityCard(
                   title: 'Oreientation',
                   subtitle: 'Device motion stability',
                   tag: 'Orientation',
+                  enabled: true,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const SwipingScreen()),
+                    );
+                  }
                 ),
               ],
             ),
