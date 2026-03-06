@@ -1,3 +1,4 @@
+import 'zigzag_screen.dart';
 import 'package:flutter/material.dart';
 
 void main() {
@@ -21,15 +22,15 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
+    return Scaffold(
       body: ColoredBox(
         color: Colors.blue,
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
+              children: [
                 Text(
                   'Signals to Pathways',
                   style: TextStyle(
@@ -49,12 +50,19 @@ class HomeScreen extends StatelessWidget {
                   title: 'Zig-Zag Tracing',
                   subtitle: 'Trace a path smoothly and accurately',
                   tag: 'Ready',
+                  enabled: true,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const ZigZagScreen()),
+                    );
+                  },
                 ),
                 SizedBox(height: 16),
                 ActivityCard(
                   title: 'Tapping',
                   subtitle: 'Target taps & consistency',
-                  tag: 'Comming soon',
+                  tag: 'Coming soon',
                 ),
                 SizedBox(height: 16),
                 ActivityCard(
@@ -66,7 +74,7 @@ class HomeScreen extends StatelessWidget {
                 ActivityCard(
                   title: 'Oreientation',
                   subtitle: 'Device motion stability',
-                  tag: 'Comming soon',
+                  tag: 'Orientation',
                 ),
               ],
             ),
@@ -81,12 +89,16 @@ class ActivityCard extends StatelessWidget {
   final String title;
   final String subtitle;
   final String tag;
+  final bool enabled;
+  final VoidCallback? onTap;
 
   const ActivityCard({
     super.key,
     required this.title,
     required this.subtitle,
     required this.tag,
+    this.enabled = false,
+    this.onTap,
   });
 
   @override
@@ -96,6 +108,7 @@ class ActivityCard extends StatelessWidget {
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
         subtitle: Text(subtitle),
         trailing: Chip(label: Text(tag)),
+        onTap: enabled ? onTap : null,
       ),
     );
   }
