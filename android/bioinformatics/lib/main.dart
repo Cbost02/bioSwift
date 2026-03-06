@@ -2,6 +2,7 @@ import 'zigzag_screen.dart';
 import 'package:flutter/material.dart';
 import 'tapping_screen.dart';
 import 'swiping_screen.dart';
+import 'orientation_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -90,7 +91,14 @@ class HomeScreen extends StatelessWidget {
                 ActivityCard(
                   title: 'Oreientation',
                   subtitle: 'Device motion stability',
-                  tag: 'Orientation',
+                  tag: 'Ready',
+                  enabled: true,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const OrientationScreen()),
+                    );
+                  }
                 ),
               ],
             ),
