@@ -5,44 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
-class TouchEvent {
-  final double time; // seconds since first touch
-  final double x; // normalized [0,1]
-  final double y; // normalized [0,1]
-  final String phase; // began | moved | ended
-
-  TouchEvent({
-    required this.time,
-    required this.x,
-    required this.y,
-    required this.phase,
-  });
-
-  Map<String, dynamic> toJson() => {
-    'time': time,
-    'x': x,
-    'y': y,
-    'phase': phase,
-  };
-}
-
-class TraceSessionExport {
-  final DateTime startedAt;
-  final int strokeCount;
-  final List<TouchEvent> samples;
-
-  TraceSessionExport({
-    required this.startedAt,
-    required this.strokeCount,
-    required this.samples,
-  });
-
-  Map<String, dynamic> toJson() => {
-    'startedAt': startedAt.toUtc().toIso8601String(),
-    'strokeCount': strokeCount,
-    'samples': samples.map((e) => e.toJson()).toList(),
-  };
-}
+import 'motor_schema.dart';
 
 class ZigZagScreen extends StatefulWidget {
   const ZigZagScreen({super.key});
@@ -55,18 +18,15 @@ class _ZigZagScreenState extends State<ZigZagScreen> {
   bool isRunning = false;
 
   int strokeCount = 0;
-  final List<TouchEvent> samples = [];
+  final List<MotorSample> samples = [];
 
   DateTime startedAt = DateTime.now();
 
-  // Used to compute elapsed seconds.
   int? sessionStartMicros;
 
-  // For export/share.
   File? lastExportFile;
   String exportStatus = '';
 
-  // Track the pad size so we can normalize.
   Size padSize = Size.zero;
 
   void startOrReset() {
@@ -103,7 +63,15 @@ class _ZigZagScreenState extends State<ZigZagScreen> {
     final ny = (localPos.dy / padSize.height).clamp(0.0, 1.0);
 
     setState(() {
-      samples.add(TouchEvent(time: elapsedSec, x: nx, y: ny, phase: phase));
+      samples.add(
+        MotorSample(
+          time: elapsedSec,
+          x: nx,
+          y: ny,
+          phase: phase,
+        ),
+      );
+
       if (phase == 'ended') {
         strokeCount += 1;
       }
@@ -113,23 +81,27 @@ class _ZigZagScreenState extends State<ZigZagScreen> {
   Future<void> exportSession() async {
     if (samples.isEmpty) return;
 
-    final session = TraceSessionExport(
+    final session = MotorSessionExport(
+      activity: 'zigzag',
+      platform: 'android',
       startedAt: startedAt,
-      strokeCount: strokeCount,
+      sessionDuration:
+          DateTime.now().difference(startedAt).inMilliseconds / 1000.0,
+      sampleCount: samples.length,
       samples: samples,
     );
 
-    final prettyJson = const JsonEncoder.withIndent(
-      '  ',
-    ).convert(session.toJson());
+    final prettyJson =
+        const JsonEncoder.withIndent('  ').convert(session.toJson());
 
     try {
       final dir = await getApplicationDocumentsDirectory();
       final filename =
-          'zigzag_session_${DateTime.now().toUtc().toIso8601String()}.json'
-              .replaceAll(':', '-'); // safe for file names
-      final file = File('${dir.path}/$filename');
+          'zigzag_session_${DateTime.now().toUtc().toIso8601String()}'
+              .replaceAll(':', '-') +
+              '.json';
 
+      final file = File('${dir.path}/$filename');
       await file.writeAsString(prettyJson);
 
       setState(() {
@@ -147,9 +119,10 @@ class _ZigZagScreenState extends State<ZigZagScreen> {
     final file = lastExportFile;
     if (file == null) return;
 
-    await Share.shareXFiles([
-      XFile(file.path),
-    ], text: 'Signals to Pathways – Zig-Zag Session Export');
+    await Share.shareXFiles(
+      [XFile(file.path)],
+      text: 'Signals to Pathways – Zig-Zag Session Export',
+    );
   }
 
   @override
@@ -157,7 +130,9 @@ class _ZigZagScreenState extends State<ZigZagScreen> {
     final canExport = samples.isNotEmpty;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Zig-Zag Tracing')),
+      appBar: AppBar(
+        title: const Text('Zig-Zag Tracing'),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -208,12 +183,14 @@ class _ZigZagScreenState extends State<ZigZagScreen> {
 
             if (exportStatus.isNotEmpty) ...[
               const SizedBox(height: 8),
-              Text(exportStatus, style: const TextStyle(color: Colors.black54)),
+              Text(
+                exportStatus,
+                style: const TextStyle(color: Colors.black54),
+              ),
             ],
 
             const SizedBox(height: 16),
 
-            // The tracing pad
             _TracingPad(
               onPadSizeChanged: (s) => padSize = s,
               onEvent: (phase, pos, micros) => recordSample(
@@ -225,15 +202,16 @@ class _ZigZagScreenState extends State<ZigZagScreen> {
 
             const SizedBox(height: 12),
 
-            // Small sample list preview (like your Swift list)
             Expanded(
               child: ListView.builder(
                 itemCount: samples.length,
                 itemBuilder: (context, i) {
                   final e = samples[i];
                   return Text(
-                    'Sample ${i + 1}: t=${e.time.toStringAsFixed(3)}s '
-                    '(${e.x.toStringAsFixed(3)}, ${e.y.toStringAsFixed(3)}) ${e.phase}',
+                    'Sample ${i + 1}: '
+                    't=${e.time.toStringAsFixed(3)}s '
+                    '(${(e.x ?? 0).toStringAsFixed(3)}, ${(e.y ?? 0).toStringAsFixed(3)}) '
+                    '${e.phase ?? ''}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(fontSize: 12),
@@ -252,7 +230,10 @@ class _TracingPad extends StatefulWidget {
   final void Function(Size) onPadSizeChanged;
   final void Function(String phase, Offset localPos, int eventMicros) onEvent;
 
-  const _TracingPad({required this.onPadSizeChanged, required this.onEvent});
+  const _TracingPad({
+    required this.onPadSizeChanged,
+    required this.onEvent,
+  });
 
   @override
   State<_TracingPad> createState() => _TracingPadState();
@@ -282,9 +263,10 @@ class _TracingPadState extends State<_TracingPad> {
       key: _key,
       height: 300,
       decoration: BoxDecoration(
-        color: Theme.of(
-          context,
-        ).colorScheme.surfaceContainerHighest.withOpacity(0.6),
+        color: Theme.of(context)
+            .colorScheme
+            .surfaceContainerHighest
+            .withOpacity(0.6),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: Colors.black.withOpacity(0.2)),
       ),
@@ -342,7 +324,6 @@ class ZigZagPainter extends CustomPainter {
     final amp = h * amplitudeRatio;
     final dx = usableW / (segmentCount <= 0 ? 1 : segmentCount);
 
-    // Build points (no control flow inside Widget tree; this is pure paint code)
     final points = <Offset>[];
     for (int i = 0; i <= segmentCount; i++) {
       final x = margin + dx * i;
