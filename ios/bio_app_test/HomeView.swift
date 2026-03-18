@@ -60,14 +60,46 @@ struct HomeView: View
                         }
                         .buttonStyle(.plain)
 
-                        ActivityCard(title: "Tapping", subtitle: "Target taps & consistency", tag: "Coming soon")
-                            .opacity(0.55)
+                        NavigationLink
+                        {
+                            TappingView()
+                        }
+                        label:
+                        {
+                            ActivityCard(
+                                title: "Tapping",
+                                subtitle: "Target taps & consistency",
+                                tag: "Ready")
+                        }
+                        .buttonStyle(.plain)
+                        
+                        NavigationLink
+                        {
+                            SwipingView()
+                        }
+                        label:
+                        {
+                            ActivityCard(
+                                title: "Swiping",
+                                subtitle: "Swipe speed & control",
+                                tag: "Ready")
+                        }
+                        .buttonStyle(.plain)
+                        
+                        
+                        NavigationLink
+                        {
+                            OrientationView()
+                        }
+                        label:
+                        {
+                            ActivityCard(
+                                title: "Orientation",
+                                subtitle: "Device motion stability",
+                                tag: "Ready")
+                        }.buttonStyle(.plain)
+        
 
-                        ActivityCard(title: "Swiping", subtitle: "Swipe speed & control", tag: "Coming soon")
-                            .opacity(0.55)
-
-                        ActivityCard(title: "Orientation", subtitle: "Device motion stability", tag: "Coming soon")
-                            .opacity(0.55)
                     }
 
                     Spacer()
