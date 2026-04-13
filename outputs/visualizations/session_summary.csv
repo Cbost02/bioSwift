@@ -1,0 +1,5 @@
+source_file,schema,activity,platform,sample_count,yaw_mean,pitch_mean,roll_mean,first_time,last_time,path_length,mean_speed,max_speed,mean_tap_interval,min_tap_interval,max_tap_interval
+orientation_session_2026-03-23T03_48_50Z.json,orientation,orientation,unknown,105,-0.18860214403420966,0.0633946757456925,-0.046490672331791355,0.11182999610900879,10.439278960227966,,,,,,
+swiping_session_2026-03-23T03_42_13Z.json,path,swiping,unknown,896,,,,0.8996570110321045,29.947257041931152,111.17598867138975,9.949862239570725,490.9146331024939,,,
+tapping_session_2026-03-23T03:37:20Z.json,tapping,tapping,unknown,157,,,,0.36687803268432617,27.245728015899658,,,,0.1723003204052265,0.1003270149230957,0.3838549852371216
+zigzag_session_2026-03-23T03:35:17Z.json,path,zigzag,unknown,1892,,,,0.0,41.48078074998921,30.26754337554533,0.73616103819808,4.422896479945841,,,
